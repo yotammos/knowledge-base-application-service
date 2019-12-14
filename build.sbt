@@ -8,9 +8,8 @@ resolvers ++= Seq(
   "Twitter repository" at "http://maven.twttr.com"
 )
 
-lazy val finagleVersion = "19.11.0"
+lazy val finagleVersion = "19.12.0"
 lazy val circeVersion = "0.12.3"
-lazy val twitterServerVersion = "1.30.0"
 lazy val finchVersion = "0.31.0"
 
 libraryDependencies ++= Seq(
@@ -19,7 +18,7 @@ libraryDependencies ++= Seq(
   "com.twitter" %% "finagle-http" % finagleVersion,
   "com.twitter" %% "finagle-mysql" % finagleVersion,
   "com.twitter" %% "finagle-thrift" % finagleVersion,
-  "com.twitter" %% "twitter-server" % twitterServerVersion,
+  "com.twitter" %% "twitter-server" % finagleVersion,
   "com.twitter" %% "scrooge-core" % finagleVersion,
   "io.circe" %% "circe-generic" % circeVersion
 )

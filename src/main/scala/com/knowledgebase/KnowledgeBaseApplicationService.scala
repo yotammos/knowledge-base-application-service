@@ -9,7 +9,7 @@ import com.twitter.finagle.{Http, Service}
 import com.twitter.finagle.http.{Request, Response}
 import com.twitter.finagle.http.filter.Cors
 import com.twitter.server.TwitterServer
-import com.twitter.util.Await
+import com.twitter.util.{Await, Future}
 import io.finch.Endpoint
 import io.finch._
 import io.finch.circe._
@@ -35,7 +35,11 @@ object KnowledgeBaseApplicationService extends TwitterServer {
       context.knowledgeBaseThriftClient.addInterests(UserId(userId), Seq(interest)) map Ok
   }
 
-  val api = (getInterests :+: addInterests).handle {
+  final val hello: Endpoint[String] = get("hello") {
+    () => Future.value("Hello World!!") map Ok
+  }
+
+  val api = (hello :+: getInterests :+: addInterests).handle {
     case e: Exception =>
       println(e.getMessage)
       InternalServerError(e)
@@ -44,7 +48,7 @@ object KnowledgeBaseApplicationService extends TwitterServer {
   val serviceWithCors: Service[Request, Response] = new Cors.HttpFilter(policy).andThen(api.toServiceAs[Application.Json])
 
   def main(): Unit = {
-    log.info(s"Serving the application on port ${port()}")
+    println(s"Serving the application on port ${port()}")
 
     val server =
       Http.server

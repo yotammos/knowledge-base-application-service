@@ -22,7 +22,7 @@ trait KnowledgeBaseThriftClientComponent {
       client.getInterests(GetInterests Args GetInterestsRequest(userId))
         .map {
           case GetInterestsResponse(true, None, Some(interests)) =>
-            println("success getting interests")
+            println(s"received interests from domain service, interests = $interests")
             interests.map(interest => Interest(
               name = interest.name,
               interestType = interest.interestType.originalName,
