@@ -49,7 +49,11 @@ trait KnowledgeBaseThriftClientComponent {
             throw new Exception("Failed getting interests for user, error = " + errorMessage)
           case _ =>
             throw new Exception("Failed getting interests for user")
-        }
+        } handle {
+        case t: Throwable =>
+          println("failed getting interests, error = " + t.getMessage)
+          throw t
+      }
 
     def addInterests(userId: UserId, interests: Seq[Interest]): Future[Unit] =
       client.addInterests(AddInterests Args AddInterestsRequest(
