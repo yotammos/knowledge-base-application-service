@@ -1,10 +1,11 @@
 package com.knowledgebase.clients
 
 import java.sql.Timestamp
+import java.time.{LocalDate, LocalDateTime}
 
-import com.knowledgebase.models.{InfoResource, Interest, StockResource}
+import com.knowledgebase.models.{InfoResource, Interest, PollEntry, PollResource, StockResource}
 import com.knowledgebase.thrift.KnowledgeBaseService.{AddInterests, GetInterests}
-import com.knowledgebase.thrift.{AddInterestsRequest, GetInterestsRequest, GetInterestsResponse, InterestType, KnowledgeBaseService, Resource, SimpleResponse, UserId, InfoResource => ThriftInfoResource, Interest => ThriftInterest, StockResource => ThriftStockResource}
+import com.knowledgebase.thrift.{AddInterestsRequest, GetInterestsRequest, GetInterestsResponse, InterestType, KnowledgeBaseService, Resource, SimpleResponse, UserId, InfoResource => ThriftInfoResource, Interest => ThriftInterest, PollEntry => ThriftPollEntry, PollResource => ThriftPollResource, StockResource => ThriftStockResource}
 import com.twitter.finagle.Thrift
 import com.twitter.util.Future
 
@@ -27,7 +28,20 @@ trait KnowledgeBaseThriftClientComponent {
               name = interest.name,
               interestType = interest.interestType.originalName,
               resources = interest.resources.map {
-                case Resource.StockResource(ThriftStockResource(currentValue, timestamp)) => StockResource(currentValue, Timestamp.valueOf(timestamp).toLocalDateTime)
+                case Resource.StockResource(ThriftStockResource(currentValue, timestamp)) => StockResource(currentValue, LocalDateTime.parse(timestamp))
+                case Resource.PollResource(ThriftPollResource(cycle, pollster, fteGrade, sampleSize, officeType, startDate, endDate, stage, entries, state)) =>
+                  PollResource(
+                    cycle,
+                    state,
+                    pollster,
+                    fteGrade,
+                    sampleSize,
+                    officeType,
+                    LocalDate parse startDate,
+                    LocalDate parse endDate,
+                    stage,
+                    entries.map(entry => PollEntry(entry.party, entry.candidate, entry.percentage))
+                  )
                 case Resource.InfoResource(ThriftInfoResource(info)) => InfoResource(info)
               }
             ))
@@ -44,11 +58,27 @@ trait KnowledgeBaseThriftClientComponent {
             name = interest.name,
             interestType = interest.interestType match {
               case "STOCK" => InterestType.Stock
+              case "POLL" => InterestType.Poll
               case "INFO" | _ => InterestType.Info
             },
             resources = interest.resources map {
-              case StockResource(currentValue, time) => Resource StockResource ThriftStockResource(currentValue, Timestamp.valueOf(time).getTime.toString)
-              case InfoResource(info) => Resource InfoResource ThriftInfoResource(info)
+              case StockResource(currentValue, time) =>
+                Resource StockResource ThriftStockResource(currentValue, Timestamp.valueOf(time).getTime.toString)
+              case PollResource(cycle, state, pollster, fteGrade, sampleSize, officeType, startDate, endDate, stage, entries) =>
+                Resource PollResource ThriftPollResource(
+                  cycle,
+                  pollster,
+                  fteGrade,
+                  sampleSize,
+                  officeType,
+                  startDate.toString,
+                  endDate.toString,
+                  stage,
+                  entries.map(entry => ThriftPollEntry(entry.party, entry.candidate, entry.percentage)),
+                  state
+                )
+              case InfoResource(info) =>
+                Resource InfoResource ThriftInfoResource(info)
             }
           )
         )

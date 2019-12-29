@@ -39,7 +39,7 @@ object KnowledgeBaseApplicationService extends TwitterServer {
     () => Future.value("Hello World!!") map Ok
   }
 
-  val api = (hello :+: getInterests :+: addInterests).handle {
+  val api = (getInterests :+: addInterests).handle {
     case e: Exception =>
       println(e.getMessage)
       InternalServerError(e)
@@ -56,6 +56,6 @@ object KnowledgeBaseApplicationService extends TwitterServer {
         .serve(s":${port()}", serviceWithCors)
     closeOnExit(server)
 
-    Await.ready(adminHttpServer)
+    Await ready adminHttpServer
   }
 }

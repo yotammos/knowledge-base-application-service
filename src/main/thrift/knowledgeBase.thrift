@@ -14,14 +14,35 @@ struct InfoResource {
     1: required string info
 }
 
+struct PollEntry {
+    1: required string party
+    2: required string candidate
+    3: required double percentage
+}
+
+struct PollResource {
+    1: required i32 cycle
+    2: required string pollster
+    3: required string fteGrade
+    4: required i32 sampleSize
+    5: required string officeType
+    6: required string startDate
+    7: required string endDate
+    8: required string stage
+    9: required list<PollEntry> entries
+    10: optional string state
+}
+
 union Resource {
     1: StockResource stockResource,
-    2: InfoResource infoResource
+    2: InfoResource infoResource,
+    3: PollResource pollResource
 }
 
 enum InterestType {
     STOCK,
-    INFO
+    INFO,
+    POLL
 }
 
 struct Interest {
