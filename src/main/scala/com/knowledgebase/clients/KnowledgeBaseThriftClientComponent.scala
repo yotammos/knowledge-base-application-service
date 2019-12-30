@@ -1,7 +1,8 @@
 package com.knowledgebase.clients
 
 import java.sql.Timestamp
-import java.time.{LocalDate, LocalDateTime}
+import java.time.format.DateTimeFormatter
+import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
 
 import com.knowledgebase.models.{InfoResource, Interest, PollEntry, PollResource, StockResource}
 import com.knowledgebase.thrift.KnowledgeBaseService.{AddInterests, GetInterests}
@@ -28,7 +29,7 @@ trait KnowledgeBaseThriftClientComponent {
               name = interest.name,
               interestType = interest.interestType.originalName,
               resources = interest.resources.map {
-                case Resource.StockResource(ThriftStockResource(currentValue, timestamp)) => StockResource(currentValue, LocalDateTime.parse(timestamp))
+                case Resource.StockResource(ThriftStockResource(currentValue, timestamp)) => StockResource(currentValue, LocalDateTime.ofInstant(Instant.ofEpochMilli(timestamp.toLong), ZoneId.systemDefault()))
                 case Resource.PollResource(ThriftPollResource(cycle, pollster, fteGrade, sampleSize, officeType, startDate, endDate, stage, entries, state)) =>
                   PollResource(
                     cycle,
@@ -37,8 +38,8 @@ trait KnowledgeBaseThriftClientComponent {
                     fteGrade,
                     sampleSize,
                     officeType,
-                    LocalDate parse startDate,
-                    LocalDate parse endDate,
+                    LocalDate.parse(startDate, DateTimeFormatter.ofPattern("M/d/yy")),
+                    LocalDate.parse(endDate, DateTimeFormatter.ofPattern("M/d/yy")),
                     stage,
                     entries.map(entry => PollEntry(entry.party, entry.candidate, entry.percentage))
                   )
