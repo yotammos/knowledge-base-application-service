@@ -4,9 +4,9 @@ import java.sql.Timestamp
 import java.time.format.DateTimeFormatter
 import java.time.{Instant, LocalDate, LocalDateTime, ZoneId}
 
-import com.knowledgebase.models.{InfoResource, Interest, PollEntry, PollResource, StockResource}
-import com.knowledgebase.thrift.KnowledgeBaseService.{AddInterests, GetInterests}
-import com.knowledgebase.thrift.{AddInterestsRequest, GetInterestsRequest, GetInterestsResponse, InterestType, KnowledgeBaseService, Resource, SimpleResponse, UserId, InfoResource => ThriftInfoResource, Interest => ThriftInterest, PollEntry => ThriftPollEntry, PollResource => ThriftPollResource, StockResource => ThriftStockResource}
+import com.knowledgebase.models.{InfoResource, Interest, InterestInfo, PollEntry, PollResource, StockResource}
+import com.knowledgebase.thrift.KnowledgeBaseService.{AddInterests, GetInterestInfo, GetInterests, RemoveInterests}
+import com.knowledgebase.thrift.{AddInterestsRequest, GetInterestInfoResponse, GetInterestsResponse, InterestType, KnowledgeBaseService, RemoveInterestsRequest, Resource, SimpleRequest, SimpleResponse, UserId, InfoResource => ThriftInfoResource, Interest => ThriftInterest, PollEntry => ThriftPollEntry, PollResource => ThriftPollResource, StockResource => ThriftStockResource}
 import com.twitter.finagle.Thrift
 import com.twitter.util.Future
 
@@ -20,8 +20,24 @@ trait KnowledgeBaseThriftClientComponent {
       "another_thrift_client"
     )
 
+    def getInterestInfo(userId: UserId): Future[Seq[InterestInfo]] =
+      client.getInterestInfo(GetInterestInfo Args SimpleRequest(userId))
+      .map {
+        case GetInterestInfoResponse(true, None, Some(info)) =>
+          println(s"received interest info from domain service, info = $info")
+          info.map(interestInfo => InterestInfo(interestInfo.name, interestInfo.interestType.originalName))
+        case GetInterestInfoResponse(false, Some(errorMessage), None) =>
+          throw new Exception("Failed getting interest info for user, error = " + errorMessage)
+        case _ =>
+          throw new Exception("Failed getting interest info for user")
+      } handle {
+        case t: Throwable =>
+          println("failed getting interest info, error = " + t.getMessage)
+          throw t
+      }
+
     def getInterests(userId: UserId): Future[Seq[Interest]] =
-      client.getInterests(GetInterests Args GetInterestsRequest(userId))
+      client.getInterests(GetInterests Args SimpleRequest(userId))
         .map {
           case GetInterestsResponse(true, None, Some(interests)) =>
             println(s"received interests from domain service, interests = $interests")
@@ -58,7 +74,8 @@ trait KnowledgeBaseThriftClientComponent {
 
     def addInterests(userId: UserId, interests: Seq[Interest]): Future[Unit] =
       client.addInterests(AddInterests Args AddInterestsRequest(
-        userId, interests.map(interest =>
+        userId, interests.map { interest =>
+          println("adding interest: " + interest)
           ThriftInterest(
             name = interest.name,
             interestType = interest.interestType match {
@@ -66,31 +83,20 @@ trait KnowledgeBaseThriftClientComponent {
               case "POLL" => InterestType.Poll
               case "INFO" | _ => InterestType.Info
             },
-            resources = interest.resources map {
-              case StockResource(currentValue, time) =>
-                Resource StockResource ThriftStockResource(currentValue, Timestamp.valueOf(time).getTime.toString)
-              case PollResource(cycle, state, pollster, fteGrade, sampleSize, officeType, startDate, endDate, stage, entries) =>
-                Resource PollResource ThriftPollResource(
-                  cycle,
-                  pollster,
-                  fteGrade,
-                  sampleSize,
-                  officeType,
-                  startDate.toString,
-                  endDate.toString,
-                  stage,
-                  entries.map(entry => ThriftPollEntry(entry.party, entry.candidate, entry.percentage)),
-                  state
-                )
-              case InfoResource(info) =>
-                Resource InfoResource ThriftInfoResource(info)
-            }
+            resources = Seq.empty[Resource]
           )
-        )
+        }
       ))
         .map {
           case SimpleResponse(false, Some(errorMessage)) => throw new Exception("failed adding interests, error = " + errorMessage)
           case _ => println("success adding interests")
+        }
+
+    def removeInterests(userId: UserId, interestNames: Seq[String]): Future[Unit] =
+      client.removeInterests(RemoveInterests Args RemoveInterestsRequest(userId, interestNames))
+        .map {
+          case SimpleResponse(false, Some(errorMessage)) => throw new Exception("failed removing interests, error = " + errorMessage)
+          case _ => println("success removing interests")
         }
   }
 }

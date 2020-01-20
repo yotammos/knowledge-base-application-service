@@ -51,8 +51,12 @@ struct Interest {
     3: required list<Resource> resources
 }
 
+struct InterestInfo {
+    1: required string name
+    2: required InterestType interestType
+}
 
-struct GetInterestsRequest {
+struct SimpleRequest {
     1: required UserId userId
 }
 
@@ -61,10 +65,21 @@ struct AddInterestsRequest {
     2: required list<Interest> interests
 }
 
+struct RemoveInterestsRequest {
+    1: required UserId userId
+    2: required list<string> interestNames
+}
+
 struct GetInterestsResponse {
     1: required bool isSuccess
     2: optional string errorMessage
     3: optional list<Interest> interests
+}
+
+struct GetInterestInfoResponse {
+    1: required bool isSuccess
+    2: optional string errorMessage
+    3: optional list<InterestInfo> interestInfos
 }
 
 struct SimpleResponse {
@@ -73,6 +88,8 @@ struct SimpleResponse {
 }
 
 service KnowledgeBaseService {
-    GetInterestsResponse getInterests(1: GetInterestsRequest request)
+    GetInterestsResponse getInterests(1: SimpleRequest request)
+    GetInterestInfoResponse getInterestInfo(1: SimpleRequest request)
     SimpleResponse addInterests(1: AddInterestsRequest request)
+    SimpleResponse removeInterests(1: RemoveInterestsRequest request)
 }
