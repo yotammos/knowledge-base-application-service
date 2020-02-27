@@ -10,7 +10,7 @@ import com.twitter.finagle.{Http, Service}
 import com.twitter.finagle.http.{Request, Response}
 import com.twitter.finagle.http.filter.Cors
 import com.twitter.server.TwitterServer
-import com.twitter.util.Await
+import com.twitter.util.{Await, Future}
 import io.finch.{Endpoint, jsonBody, _}
 import io.finch.circe._
 import io.finch.syntax._
@@ -53,10 +53,12 @@ object KnowledgeBaseApplicationService extends TwitterServer {
     exampleService.getMessage map Ok
   }
 
-  def acceptedMessage: Endpoint[Message] = jsonBody[Message]
+  def accept: Endpoint[Message] = post("accept" :: jsonBody[Message]) { incomingMessage: Message =>
+    exampleService.acceptMessage(incomingMessage) map Ok
+  }
 
-  def accept: Endpoint[Message] = post("accept" :: acceptedMessage) { incomingMessage: Message =>
-    exampleService.acceptMessage(incomingMessage).map(Ok)
+  def acceptMultiple: Endpoint[Seq[Message]] = post("acceptMultiple" :: jsonBody[Seq[Message]]) { incomingMessages: Seq[Message] =>
+    Future.collect(incomingMessages map exampleService.acceptMessage) map Ok
   }
 
   private val api = (getInterests :+: getInterestInfo :+: addInterests :+: removeInterests).handle {
